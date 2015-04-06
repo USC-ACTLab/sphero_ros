@@ -231,8 +231,12 @@ class SpheroNode(object):
     def cmd_vel(self, msg):
         if self.is_connected:
             self.last_cmd_vel_time = rospy.Time.now()
-            self.cmd_heading = self.normalize_angle_positive(math.atan2(msg.linear.x,msg.linear.y))*180/math.pi
-            self.cmd_speed = math.sqrt(math.pow(msg.linear.x,2)+math.pow(msg.linear.y,2))
+            if msg.angular.x != 0:
+                self.cmd_heading = int(self.normalize_angle_positive(msg.angular.x)*180.0/math.pi)
+                self.cmd_speed = msg.linear.x
+            else:
+                self.cmd_heading = self.normalize_angle_positive(math.atan2(msg.linear.x,msg.linear.y))*180/math.pi
+                self.cmd_speed = math.sqrt(math.pow(msg.linear.x,2)+math.pow(msg.linear.y,2))
             self.robot.roll(int(self.cmd_speed), int(self.cmd_heading), 1, False)
     
     def set_color(self, msg):
@@ -241,7 +245,7 @@ class SpheroNode(object):
 
     def set_back_led(self, msg):
         if self.is_connected:
-            self.robot.set_back(msg.data, False)
+            self.robot.set_back_led(int(msg.data*255), False)
 
     def set_stabilization(self, msg):
         if self.is_connected:
