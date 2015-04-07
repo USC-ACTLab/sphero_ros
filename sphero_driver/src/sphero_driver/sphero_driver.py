@@ -169,39 +169,46 @@ class BTInterface(object):
       self.target_address = None
       self.sock = None
 
-  def connect(self):
-    sys.stdout.write("Searching for devices....")
-    sys.stdout.flush()
-
-    for i in range(10):
-      sys.stdout.write("....")
+  def connect(self, address = None):
+    if address is None:
+      sys.stdout.write("Searching for devices....")
       sys.stdout.flush()
-      nearby_devices = bluetooth.discover_devices(lookup_names = True)
 
-      if len(nearby_devices)>0:
-        for bdaddr, name in nearby_devices:
-          #look for a device name that starts with Sphero
-          if name.startswith(self.target_name):
-            self.found_device = True
-            self.target_address = bdaddr
-            break
-      if self.found_device:
-        break
+      for i in range(10):
+        sys.stdout.write("....")
+        sys.stdout.flush()
+        nearby_devices = bluetooth.discover_devices(lookup_names = True)
+
+        if len(nearby_devices)>0:
+          for bdaddr, name in nearby_devices:
+            #look for a device name that starts with Sphero
+            if name.startswith(self.target_name):
+              self.found_device = True
+              self.target_address = bdaddr
+              break
+        if self.found_device:
+          break
 
 
-    if self.target_address is not None:
-      sys.stdout.write("\nFound Sphero device with address: %s\n" %  (self.target_address))
-      sys.stdout.flush()
+      if self.target_address is not None:
+        sys.stdout.write("\nFound Sphero device with address: %s\n" % (self.target_address))
+        sys.stdout.flush()
+      else:
+        sys.stdout.write("\nNo Sphero devices found.\n" )
+        sys.stdout.flush()
+        sys.exit(1)
+
     else:
-      sys.stdout.write("\nNo Sphero devices found.\n" )
+      string = "Connecting to devices with address %s\n"%address
+      sys.stdout.write(string)
       sys.stdout.flush()
-      sys.exit(1)
+      self.target_address = address
 
     try:
       self.sock=bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-      self.sock.connect((bdaddr,self.port))
+      self.sock.connect((self.target_address,self.port))
     except bluetooth.btcommon.BluetoothError as error:
-      sys.stdout.write(error)
+      sys.stdout.write(str(error))
       sys.stdout.flush()
       time.sleep(5.0)
       sys.exit(1)
@@ -236,9 +243,9 @@ class Sphero(threading.Thread):
     self._sync_callback_dict = dict()
     self._sync_callback_queue = []
 
-  def connect(self):
+  def connect(self,address=None):
     self.bt = BTInterface(self.target_name)
-    self.is_connected = self.bt.connect()
+    self.is_connected = self.bt.connect(address)
     return True
 
   def inc_seq(self):
